@@ -248,6 +248,19 @@ async function onPlay() {
 }
 
 /* ---------- modrinth helpers ---------- */
+function bestVersion(versions) {
+  return versions.find((v) => v.version_type === 'release') || versions[0]
+}
+
+function versionTag(ver) {
+  const mc = (ver.game_versions || []).slice(0, 3).join('/')
+  const ld = (ver.loaders || []).slice(0, 2).join('/')
+  const parts = []
+  if (mc) parts.push('MC ' + mc)
+  if (ld) parts.push(ld)
+  return (parts.length ? ' for ' : '') + parts.join(' + ')
+}
+
 function cardFor(hit, type) {
   const card = document.createElement('div')
   card.className = 'mcard'
@@ -283,14 +296,16 @@ function cardFor(hit, type) {
     try {
       const versions = await ninoApi.modrinth.versions(hit.project_id)
       if (!versions.length) throw new Error('No version for your Minecraft version / loader')
-      const ver = versions[0]
+      const ver = bestVersion(versions)
       if (type === 'modpack') {
+        setStatus('packs-status', `Installing ${hit.title} v${ver.version_number}${versionTag(ver)}...`)
         await ninoApi.modpacks.install({ projectId: hit.project_id, versionId: ver.id })
-        setStatus('packs-status', `Installed ${hit.title} v${ver.version_number}`)
+        setStatus('packs-status', `Installed ${hit.title} v${ver.version_number}${versionTag(ver)}`)
         refreshInstalledPacks()
       } else {
+        setStatus('mods-status', `Installing ${hit.title} v${ver.version_number}${versionTag(ver)}...`)
         await ninoApi.modrinth.install({ projectId: hit.project_id, versionId: ver.id })
-        setStatus('mods-status', `Installed ${hit.title} v${ver.version_number}`)
+        setStatus('mods-status', `Installed ${hit.title} v${ver.version_number}${versionTag(ver)}`)
         refreshInstalledMods()
       }
       hideProgress()

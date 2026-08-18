@@ -1,7 +1,7 @@
 {
   "name": "ninocraft-launcher",
   "productName": "NinoCraft Launcher",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Nino Nakano themed Minecraft launcher with Modrinth support",
   "author": "NinoCraft <nino@ninocraft.dev>",
   "main": "main.js",

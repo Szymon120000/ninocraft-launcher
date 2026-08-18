@@ -89,7 +89,7 @@ function registerIpc() {
   ipcMain.handle('modrinth:search', (_e, args) => modrinth.search(args || {}))
   ipcMain.handle('modrinth:project', (_e, id) => modrinth.getProject(id))
   ipcMain.handle('modrinth:versions', (_e, id) => {
-    const cfg = config.load()
+    const cfg = config.effective()
     return modrinth.getProjectVersions(id, cfg.mcVersion, cfg.loader)
   })
 
@@ -259,8 +259,9 @@ function registerIpc() {
     if (!proj) throw new Error('Iris not found on Modrinth')
     const versions = await modrinth.getProjectVersions(proj.project_id, cfg.mcVersion, cfg.loader)
     if (!versions.length) throw new Error(`Iris has no version for Minecraft ${cfg.mcVersion} + ${cfg.loader}`)
-    await modrinth.installMod(proj, versions[0])
-    return { ok: true, version: versions[0].version_number }
+    const ver = versions.find((v) => v.version_type === 'release') || versions[0]
+    await modrinth.installMod(proj, ver)
+    return { ok: true, version: ver.version_number }
   })
 }
 
