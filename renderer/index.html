@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>NinoCraft</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="petals" aria-hidden="true"></div>
+
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="bow" aria-hidden="true">
+        <span class="loop left"></span>
+        <span class="loop right"></span>
+        <span class="knot"></span>
+        <span class="tail left"></span>
+        <span class="tail right"></span>
+      </div>
+      <h1 class="brand-name">NinoCraft</h1>
+      <p class="brand-tag">the launcher Nino baked just for you</p>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-tab="play">Play</button>
+      <button class="nav-btn" data-tab="mods">Mods</button>
+      <button class="nav-btn" data-tab="modpacks">Modpacks</button>
+      <button class="nav-btn" data-tab="packs">Packs</button>
+      <button class="nav-btn" data-tab="shaders">Shaders</button>
+      <button class="nav-btn" data-tab="account">Account</button>
+      <button class="nav-btn" data-tab="settings">Settings</button>
+    </nav>
+    <div class="sidebar-foot">ver 1.0 &middot; made with love</div>
+  </aside>
+
+  <main id="content">
+    <section id="tab-play" class="tab active">
+      <h2 class="tab-title">Ready to play?</h2>
+      <div class="profile-row">
+        <label for="profile-select">Profile</label>
+        <select id="profile-select"></select>
+        <button id="btn-profile-new" class="btn ghost small">New profile</button>
+        <button id="btn-profile-del" class="btn ghost small">Delete</button>
+      </div>
+      <div class="profile-row" id="profile-new-row" hidden>
+        <label for="profile-new-name">Name</label>
+        <input id="profile-new-name" type="text" placeholder="Profile name" />
+        <button id="btn-profile-create" class="btn small">Create</button>
+        <button id="btn-profile-cancel" class="btn ghost small">Cancel</button>
+      </div>
+      <div class="launch-config card">
+        <div class="field">
+          <label for="mc-version">Minecraft version</label>
+          <select id="mc-version"></select>
+        </div>
+        <div class="field">
+          <label for="mc-loader">Loader</label>
+          <select id="mc-loader">
+            <option value="fabric">Fabric</option>
+            <option value="quilt">Quilt</option>
+            <option value="forge">Forge</option>
+            <option value="neoforge">NeoForge</option>
+            <option value="vanilla">Vanilla</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="ram-slider">Memory: <span id="ram-label">4096</span> MB</label>
+          <input type="range" id="ram-slider" min="1024" max="16384" step="256" value="4096" />
+        </div>
+      </div>
+
+      <div class="launch-row">
+        <button id="btn-play" class="btn play">Launch</button>
+        <button id="btn-stop" class="btn ghost" hidden>Stop</button>
+        <button id="btn-official" class="btn ghost">Open Official Launcher</button>
+        <button id="btn-open-mods" class="btn ghost">Open Mods Folder</button>
+      </div>
+
+      <div class="status-line" id="play-status">Loading versions...</div>
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        <span id="progress-label" class="progress-label"></span>
+      </div>
+
+      <div class="console card">
+        <div class="console-title">Game log</div>
+        <pre id="console" class="console-body"></pre>
+      </div>
+    </section>
+
+    <section id="tab-mods" class="tab">
+      <div class="tab-head">
+        <h2 class="tab-title">Modrinth Mods</h2>
+        <div class="search-row">
+          <input id="mod-search" type="text" placeholder="Search mods on Modrinth..." />
+          <button id="mod-search-btn" class="btn small">Search</button>
+        </div>
+      </div>
+      <div class="status-line" id="mods-status">Type a search to find mods for your version.</div>
+      <div id="mod-results" class="cards"></div>
+      <h3 class="sub-title">Installed mods</h3>
+      <div id="installed-mods" class="list"></div>
+    </section>
+
+    <section id="tab-modpacks" class="tab">
+      <div class="tab-head">
+        <h2 class="tab-title">Modrinth Modpacks</h2>
+        <div class="search-row">
+          <input id="pack-search" type="text" placeholder="Search modpacks on Modrinth..." />
+          <button id="pack-search-btn" class="btn small">Search</button>
+        </div>
+      </div>
+      <div class="status-line" id="packs-status">Type a search to find modpacks.</div>
+      <div id="pack-results" class="cards"></div>
+      <h3 class="sub-title">Installed modpacks</h3>
+      <div id="installed-packs" class="list"></div>
+    </section>
+
+    <section id="tab-packs" class="tab">
+      <div class="tab-head">
+        <h2 class="tab-title">Resource Packs</h2>
+        <button id="btn-packs-open" class="btn small">Open folder</button>
+      </div>
+      <div class="status-line" id="packs-status">Loading packs...</div>
+      <div id="packs-list" class="list"></div>
+    </section>
+
+    <section id="tab-shaders" class="tab">
+      <div class="tab-head">
+        <h2 class="tab-title">Shaders</h2>
+        <button id="btn-shaders-open" class="btn small">Open folder</button>
+      </div>
+      <div id="shaders-warn" class="card" hidden>
+        <p>Iris is not installed, so shaders cannot be used. Install it from Modrinth (make sure it is compatible with your Sodium version).</p>
+        <button id="btn-install-iris" class="btn small">Install Iris</button>
+      </div>
+      <div class="status-line" id="shaders-status">Loading shaderpacks...</div>
+      <div id="shaders-list" class="list"></div>
+    </section>
+
+    <section id="tab-account" class="tab">
+      <h2 class="tab-title">Account</h2>
+      <div class="card account-card">
+        <div id="account-view" hidden>
+          <div class="avatar" id="account-avatar"></div>
+          <div class="account-info">
+            <div id="account-name" class="account-name"></div>
+            <div id="account-type" class="account-type"></div>
+          </div>
+          <button id="btn-logout" class="btn small">Log out</button>
+        </div>
+        <div id="account-empty">
+          <p>No account yet. Log in with Microsoft for online play, or use offline mode.</p>
+          <div class="offline-row">
+            <input id="offline-name" type="text" placeholder="Offline username" />
+            <button id="btn-offline" class="btn small">Play offline</button>
+          </div>
+          <button id="btn-ms" class="btn small">Log in with Microsoft</button>
+        </div>
+      </div>
+      <div id="ms-device" class="card" hidden>
+        <h3>Microsoft device code login</h3>
+        <p id="ms-device-message"></p>
+        <div id="ms-device-code" class="device-code"></div>
+        <p class="hint">Wait for the browser step to finish. This window will continue automatically.</p>
+      </div>
+      <div class="status-line" id="account-status"></div>
+    </section>
+
+    <section id="tab-settings" class="tab">
+      <h2 class="tab-title">Settings</h2>
+      <div class="card">
+        <div class="field">
+          <label for="game-dir">Game directory (.minecraft)</label>
+          <div class="input-row">
+            <input id="game-dir" type="text" />
+            <button id="btn-browse" class="btn small">Browse</button>
+            <button id="btn-open-dir" class="btn small">Open</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="java-path">Java path <span class="hint">(leave empty to auto-detect)</span></label>
+          <div class="input-row">
+            <input id="java-path" type="text" />
+            <button id="btn-find-java" class="btn small">Auto-detect</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="check-row">
+            <input id="write-profiles" type="checkbox" />
+            Add a NinoCraft profile to the official launcher
+          </label>
+        </div>
+        <div class="field">
+          <label class="check-row">
+            <input id="ui-pack" type="checkbox" />
+            NinoCraft Pink UI in-game theme
+          </label>
+        </div>
+        <div class="field">
+          <label class="check-row">
+            <input id="nino-modules" type="checkbox" />
+            NinoCraft Modules <span class="hint">(R-Shift in-game menu)</span>
+          </label>
+        </div>
+        <div class="field row">
+          <button id="btn-net-test" class="btn small">Test connection</button>
+          <span id="net-result" class="hint"></span>
+        </div>
+      </div>
+      <div class="card nino-card">
+        <p>NinoCraft is a fan-made launcher themed after Nino Nakano from <em>The Quintessential Quintuplets</em>.</p>
+        <p class="hint">Minecraft is a trademark of Mojang AB. This project is not affiliated with Mojang or Microsoft. Mods come from Modrinth.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="update-bubble" class="hidden" role="status">
+    <div class="bubble-head">
+      <span class="bubble-heart" aria-hidden="true">&#9829;</span>
+      <span class="bubble-title">Update available</span>
+      <button id="update-dismiss" class="bubble-x" title="Dismiss" aria-label="Dismiss">&#10005;</button>
+    </div>
+    <p id="update-text">NinoCraft Launcher <b id="update-version"></b> is ready to download.</p>
+    <div id="bubble-bar" class="bubble-bar hidden"><div id="update-fill"></div></div>
+    <div class="bubble-actions">
+      <button id="update-download" class="btn small">Update now</button>
+      <button id="update-install" class="btn small hidden">Restart &amp; install</button>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

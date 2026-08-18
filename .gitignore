@@ -1,0 +1,7 @@
+node_modules/
+dist/
+ui-pack/
+mod/.gradle/
+mod/build/
+mod/.fabricloom/
+*.log

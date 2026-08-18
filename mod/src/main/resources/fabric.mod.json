@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "ninocraft-modules",
+  "version": "${version}",
+  "name": "NinoCraft Modules",
+  "description": "Nino-themed client modules. Press R-Shift to open the module menu.",
+  "authors": ["NinoCraft"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["ninocraft.modules.NinocraftModulesClient"]
+  },
+  "mixins": ["ninocraft-modules.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

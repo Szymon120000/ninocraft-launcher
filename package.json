@@ -1,0 +1,79 @@
+{
+  "name": "ninocraft-launcher",
+  "productName": "NinoCraft Launcher",
+  "version": "1.1.0",
+  "description": "Nino Nakano themed Minecraft launcher with Modrinth support",
+  "author": "NinoCraft <nino@ninocraft.dev>",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack-ui": "node tools/gen-ui-pack.js",
+    "dist": "node tools/gen-icon.js && node tools/gen-ui-pack.js && electron-builder --win",
+    "publish": "node tools/gen-icon.js && node tools/gen-ui-pack.js && electron-builder --win --publish always"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Szymon120000/ninocraft-launcher"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "com.ninocraft.launcher",
+    "productName": "NinoCraft Launcher",
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "ui-pack",
+        "to": "appdata/ui-pack"
+      },
+      {
+        "from": "tools",
+        "to": "appdata/tools"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NinoCraft Launcher"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Szymon120000",
+        "repo": "ninocraft-launcher"
+      }
+    ]
+  }
+}

@@ -1,0 +1,773 @@
+const ninoApi = window.nino
+const $ = (id) => document.getElementById(id)
+
+let settings = null
+let profileData = null
+let installedMods = []
+let installedPacks = []
+let gameRunning = false
+let searchController = null
+
+function log(msg) {
+  const el = $('console')
+  const text = typeof msg === 'string' ? msg : String(msg)
+  const lines = el.textContent.split('\n')
+  lines.push(text)
+  if (lines.length > 600) lines.splice(0, lines.length - 600)
+  el.textContent = lines.join('\n')
+  el.scrollTop = el.scrollHeight
+}
+
+function setStatus(id, text, isError) {
+  const el = $(id)
+  el.textContent = text
+  el.className = 'status-line' + (isError ? ' error' : '')
+}
+
+function showProgress(label, current, total) {
+  const wrap = $('progress-wrap')
+  wrap.hidden = false
+  $('progress-label').textContent = label || ''
+  const pct = total > 0 ? Math.min(100, (current / total) * 100) : current > 0 ? 100 : 12
+  $('progress-fill').style.width = pct + '%'
+}
+
+function hideProgress() {
+  $('progress-wrap').hidden = true
+  $('progress-fill').style.width = '0%'
+}
+
+async function saveSettings() {
+  settings = await ninoApi.settings.set(settings)
+}
+
+function fmtSize(bytes) {
+  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB'
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB'
+  return (bytes / 1024).toFixed(0) + ' KB'
+}
+
+function fmtCount(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
+  return String(n)
+}
+
+/* ---------- petals ---------- */
+function spawnPetals() {
+  const wrap = $('petals')
+  for (let i = 0; i < 14; i++) {
+    const p = document.createElement('div')
+    p.className = 'petal'
+    const size = 8 + Math.random() * 10
+    p.style.width = size + 'px'
+    p.style.height = size + 'px'
+    p.style.left = Math.random() * 100 + 'vw'
+    p.style.animationDuration = 8 + Math.random() * 9 + 's'
+    p.style.animationDelay = -Math.random() * 14 + 's'
+    p.style.opacity = (0.3 + Math.random() * 0.4).toFixed(2)
+    wrap.appendChild(p)
+  }
+}
+
+/* ---------- tabs ---------- */
+function setupTabs() {
+  document.querySelectorAll('.nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'))
+      btn.classList.add('active')
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'))
+      $('tab-' + btn.dataset.tab).classList.add('active')
+      if (btn.dataset.tab === 'mods') refreshInstalledMods()
+      if (btn.dataset.tab === 'modpacks') refreshInstalledPacks()
+      if (btn.dataset.tab === 'packs') refreshPacks()
+      if (btn.dataset.tab === 'shaders') refreshShaders()
+      if (btn.dataset.tab === 'account') renderAccount()
+    })
+  })
+}
+
+/* ---------- versions ---------- */
+async function loadVersions() {
+  const data = await ninoApi.versions()
+  if (!settings.mcVersion) {
+    settings.mcVersion = data.latest.release
+    if (profileData) await updateProfileField({ mcVersion: settings.mcVersion })
+    else await saveSettings()
+  }
+  const select = $('mc-version')
+  select.innerHTML = ''
+  const releases = data.versions.filter((v) => v.type === 'release')
+  const snapshots = data.versions.filter((v) => v.type === 'snapshot')
+  const group = (title, arr) => {
+    const optgroup = document.createElement('optgroup')
+    optgroup.label = title
+    arr.forEach((v) => {
+      const opt = document.createElement('option')
+      opt.value = v.id
+      opt.textContent = v.id
+      optgroup.appendChild(opt)
+    })
+    select.appendChild(optgroup)
+  }
+  group('Releases', releases)
+  group('Snapshots', snapshots.slice(0, 15))
+  select.value = settings.mcVersion
+  $('play-status').textContent = ''
+}
+
+/* ---------- play tab ---------- */
+function profileLabel(p) {
+  return p.name + ' \u2014 ' + (p.mcVersion || '?') + (p.loader && p.loader !== 'vanilla' ? ' ' + p.loader : '')
+}
+
+function refreshProfileSelect() {
+  const sel = $('profile-select')
+  sel.innerHTML = ''
+  for (const p of profileData.profiles) {
+    const opt = document.createElement('option')
+    opt.value = p.id
+    opt.textContent = profileLabel(p)
+    sel.appendChild(opt)
+  }
+  sel.value = profileData.active
+}
+
+function applyProfileToForm() {
+  const p = profileData.profiles.find((x) => x.id === profileData.active)
+  if (!p) return
+  settings.mcVersion = p.mcVersion
+  settings.loader = p.loader
+  settings.ram = p.ram
+  $('mc-version').value = p.mcVersion
+  $('mc-loader').value = p.loader
+  $('ram-slider').value = p.ram
+  $('ram-label').textContent = p.ram
+}
+
+async function loadProfiles() {
+  profileData = await ninoApi.profiles.list()
+  refreshProfileSelect()
+  applyProfileToForm()
+}
+
+async function updateProfileField(patch) {
+  settings = { ...settings, ...patch }
+  await saveSettings()
+  profileData = await ninoApi.profiles.update(patch)
+  refreshProfileSelect()
+  applyProfileToForm()
+}
+
+function setupProfiles() {
+  $('profile-select').addEventListener('change', async () => {
+    profileData = await ninoApi.profiles.setActive($('profile-select').value)
+    refreshProfileSelect()
+    applyProfileToForm()
+  })
+  $('btn-profile-new').addEventListener('click', () => {
+    $('profile-new-row').hidden = false
+    $('profile-new-name').value = 'Profile ' + (profileData.profiles.length + 1)
+    $('profile-new-name').focus()
+  })
+  $('btn-profile-create').addEventListener('click', async () => {
+    const name = $('profile-new-name').value.trim()
+    if (!name) return
+    profileData = await ninoApi.profiles.create(name)
+    $('profile-new-row').hidden = true
+    refreshProfileSelect()
+    applyProfileToForm()
+  })
+  $('btn-profile-cancel').addEventListener('click', () => {
+    $('profile-new-row').hidden = true
+  })
+  $('btn-profile-del').addEventListener('click', async () => {
+    if (profileData.profiles.length <= 1) return
+    if (!confirm('Delete profile "' + (profileData.profiles.find((x) => x.id === profileData.active) || {}).name + '"?')) return
+    profileData = await ninoApi.profiles.remove(profileData.active)
+    refreshProfileSelect()
+    applyProfileToForm()
+  })
+}
+
+function setupPlay() {
+  $('mc-version').addEventListener('change', () => updateProfileField({ mcVersion: $('mc-version').value }))
+  $('mc-loader').addEventListener('change', () => updateProfileField({ loader: $('mc-loader').value }))
+  $('ram-slider').addEventListener('input', () => {
+    $('ram-label').textContent = $('ram-slider').value
+  })
+  $('ram-slider').addEventListener('change', () => updateProfileField({ ram: parseInt($('ram-slider').value, 10) }))
+
+  $('btn-play').addEventListener('click', onPlay)
+  $('btn-stop').addEventListener('click', async () => {
+    await ninoApi.game.stop()
+    log('Stopping Minecraft...')
+  })
+  $('btn-official').addEventListener('click', async () => {
+    const r = await ninoApi.game.openOfficialLauncher()
+    log(r.launched ? `Opened official launcher (${r.path})` : 'Official launcher not found')
+  })
+  $('btn-open-mods').addEventListener('click', () => ninoApi.game.openModsFolder())
+
+  ninoApi.onProgress((p) => showProgress(p.label, p.current || 0, p.total || 0))
+  ninoApi.onLog((line) => {
+    hideProgress()
+    log(line)
+  })
+  ninoApi.onGameExit(() => {
+    gameRunning = false
+    $('btn-play').disabled = false
+    $('btn-play').textContent = 'Launch'
+    $('btn-stop').hidden = true
+    hideProgress()
+  })
+}
+
+async function onPlay() {
+  if (gameRunning) return
+  setStatus('play-status', 'Preparing the oven...')
+  $('btn-play').disabled = true
+  $('btn-play').textContent = 'Launching...'
+  $('btn-stop').hidden = false
+  log('== NinoCraft launch session ==')
+  try {
+    await ninoApi.game.launch()
+    gameRunning = true
+    setStatus('play-status', 'Minecraft is running! Enjoy!')
+    $('btn-play').disabled = true
+    $('btn-play').textContent = 'In game...'
+  } catch (e) {
+    log('Error: ' + (e.message || e))
+    setStatus('play-status', 'Launch failed: ' + (e.message || e), true)
+    gameRunning = false
+    $('btn-play').disabled = false
+    $('btn-play').textContent = 'Launch'
+    $('btn-stop').hidden = true
+    hideProgress()
+  }
+}
+
+/* ---------- modrinth helpers ---------- */
+function cardFor(hit, type) {
+  const card = document.createElement('div')
+  card.className = 'mcard'
+
+  const head = document.createElement('div')
+  head.className = 'mcard-head'
+  const img = document.createElement('img')
+  img.className = 'mcard-icon'
+  img.src = hit.icon_url || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" rx="12" fill="%23ffb3c6"/></svg>'
+  img.alt = ''
+  const title = document.createElement('div')
+  title.className = 'mcard-title'
+  title.textContent = hit.title
+  head.appendChild(img)
+  head.appendChild(title)
+
+  const desc = document.createElement('div')
+  desc.className = 'mcard-desc'
+  desc.textContent = hit.description || ''
+
+  const foot = document.createElement('div')
+  foot.className = 'mcard-foot'
+  const stats = document.createElement('div')
+  stats.className = 'mcard-stats'
+  stats.textContent = fmtCount(hit.downloads || 0) + ' downloads'
+  const btn = document.createElement('button')
+  btn.className = 'btn small'
+  btn.textContent = type === 'modpack' ? 'Install pack' : 'Install'
+  btn.addEventListener('click', async () => {
+    btn.disabled = true
+    btn.textContent = 'Loading...'
+    setStatus(type === 'modpack' ? 'packs-status' : 'mods-status', 'Checking versions...')
+    try {
+      const versions = await ninoApi.modrinth.versions(hit.project_id)
+      if (!versions.length) throw new Error('No version for your Minecraft version / loader')
+      const ver = versions[0]
+      if (type === 'modpack') {
+        await ninoApi.modpacks.install({ projectId: hit.project_id, versionId: ver.id })
+        setStatus('packs-status', `Installed ${hit.title} v${ver.version_number}`)
+        refreshInstalledPacks()
+      } else {
+        await ninoApi.modrinth.install({ projectId: hit.project_id, versionId: ver.id })
+        setStatus('mods-status', `Installed ${hit.title} v${ver.version_number}`)
+        refreshInstalledMods()
+      }
+      hideProgress()
+    } catch (e) {
+      hideProgress()
+      setStatus(type === 'modpack' ? 'packs-status' : 'mods-status', 'Failed: ' + (e.message || e), true)
+    } finally {
+      btn.disabled = false
+      btn.textContent = type === 'modpack' ? 'Install pack' : 'Install'
+    }
+  })
+  foot.appendChild(stats)
+  foot.appendChild(btn)
+
+  card.appendChild(head)
+  card.appendChild(desc)
+  card.appendChild(foot)
+  return card
+}
+
+function setupSearch(inputId, btnId, resultsId, statusId, type) {
+  const input = $(inputId)
+  const run = async () => {
+    const q = input.value.trim()
+    const el = $(resultsId)
+    el.innerHTML = ''
+    if (!q) {
+      setStatus(statusId, 'Type a search to find ' + (type === 'modpack' ? 'modpacks.' : 'mods.'))
+      return
+    }
+    setStatus(statusId, 'Searching Modrinth...')
+    try {
+      const data = await ninoApi.modrinth.search({ query: q, type })
+      const hits = data.hits || []
+      setStatus(statusId, `Found ${hits.length} result${hits.length === 1 ? '' : 's'}.`)
+      hits.forEach((h) => el.appendChild(cardFor(h, type)))
+    } catch (e) {
+      setStatus(statusId, 'Search failed: ' + (e.message || e), true)
+    }
+  }
+  $(btnId).addEventListener('click', run)
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') run() })
+}
+
+/* ---------- installed ---------- */
+function itemFor(entry, removeFn) {
+  const item = document.createElement('div')
+  item.className = 'item'
+  const img = document.createElement('img')
+  img.className = 'item-icon'
+  img.src = entry.icon || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><rect width="36" height="36" rx="10" fill="%23ffb3c6"/></svg>'
+  img.alt = ''
+  const info = document.createElement('div')
+  info.className = 'item-info'
+  const t = document.createElement('div')
+  t.className = 'item-title'
+  t.textContent = entry.title
+  const sub = document.createElement('div')
+  sub.className = 'item-sub'
+  sub.textContent = (entry.versionName ? 'v' + entry.versionName + ' · ' : '') + fmtSize(entry.size || 0) + (entry.managed ? '' : ' · unmanaged')
+  info.appendChild(t)
+  info.appendChild(sub)
+  const rm = document.createElement('button')
+  rm.className = 'btn ghost small'
+  rm.textContent = 'Remove'
+  rm.addEventListener('click', async () => {
+    rm.disabled = true
+    try {
+      await removeFn()
+    } finally { }
+  })
+  item.appendChild(img)
+  item.appendChild(info)
+  item.appendChild(rm)
+  return item
+}
+
+async function refreshInstalledMods() {
+  const el = $('installed-mods')
+  el.innerHTML = ''
+  try {
+    installedMods = await ninoApi.mods.list()
+  } catch (e) {
+    installedMods = []
+  }
+  if (!installedMods.length) {
+    el.innerHTML = '<div class="hint">No mods installed yet. Search above to add some.</div>'
+    return
+  }
+  installedMods.forEach((m) => {
+    el.appendChild(itemFor(m, async () => {
+      await ninoApi.mods.remove(m.fileName)
+      setStatus('mods-status', `Removed ${m.fileName}`)
+      refreshInstalledMods()
+    }))
+  })
+}
+
+async function refreshInstalledPacks() {
+  const el = $('installed-packs')
+  el.innerHTML = ''
+  try {
+    installedPacks = await ninoApi.modpacks.list()
+  } catch (e) {
+    installedPacks = []
+  }
+  if (!installedPacks.length) {
+    el.innerHTML = '<div class="hint">No modpacks installed yet.</div>'
+    return
+  }
+  installedPacks.forEach((p) => {
+    el.appendChild(itemFor({ title: p.title, versionName: p.versionName, icon: p.icon, size: 0, managed: true }, async () => {
+      await ninoApi.modpacks.remove(p.slug)
+      setStatus('packs-status', `Removed ${p.title}`)
+      refreshInstalledPacks()
+    }))
+  })
+}
+
+/* ---------- resource packs ---------- */
+async function refreshPacks() {
+  const el = $('packs-list')
+  el.innerHTML = ''
+  let list = []
+  try {
+    list = await ninoApi.packs.list()
+  } catch (e) {
+    setStatus('packs-status', 'Failed to list packs: ' + (e.message || e), true)
+    return
+  }
+  if (!list.length) {
+    el.innerHTML = '<div class="hint">No resource packs found. Drop packs into the resourcepacks folder.</div>'
+    setStatus('packs-status', '')
+    return
+  }
+  setStatus('packs-status', list.length + ' pack' + (list.length === 1 ? '' : 's') + ' found.')
+  for (const p of list) {
+    const item = document.createElement('div')
+    item.className = 'item'
+    const img = document.createElement('img')
+    img.className = 'item-icon'
+    img.src = p.icon || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><rect width="36" height="36" rx="10" fill="%23ffb3c6"/></svg>'
+    img.alt = ''
+    const info = document.createElement('div')
+    info.className = 'item-info'
+    const t = document.createElement('div')
+    t.className = 'item-title'
+    t.textContent = p.name
+    const sub = document.createElement('div')
+    sub.className = 'item-sub'
+    sub.textContent = (p.description || 'no description') + (p.pack_format ? ' \u00b7 format ' + p.pack_format : '')
+    info.appendChild(t)
+    info.appendChild(sub)
+    const btn = document.createElement('button')
+    btn.className = 'btn small ' + (p.enabled ? 'ghost' : '')
+    btn.textContent = p.enabled ? 'Disable' : 'Enable'
+    btn.addEventListener('click', async () => {
+      btn.disabled = true
+      try {
+        await ninoApi.packs.set(p.name, !p.enabled)
+        refreshPacks()
+      } catch (e) {
+        setStatus('packs-status', 'Failed: ' + (e.message || e), true)
+        btn.disabled = false
+      }
+    })
+    item.appendChild(img)
+    item.appendChild(info)
+    item.appendChild(btn)
+    el.appendChild(item)
+  }
+}
+
+/* ---------- shaders ---------- */
+async function refreshShaders() {
+  const el = $('shaders-list')
+  el.innerHTML = ''
+  let data = null
+  try {
+    data = await ninoApi.shaders.list()
+  } catch (e) {
+    setStatus('shaders-status', 'Failed to list shaders: ' + (e.message || e), true)
+    return
+  }
+  $('shaders-warn').hidden = data.iris
+  if (!data.packs.length) {
+    el.innerHTML = '<div class="hint">No shader packs found. Put .zip shader packs into the shaderpacks folder.</div>'
+  } else {
+    for (const p of data.packs) {
+      const item = document.createElement('div')
+      item.className = 'item'
+      const img = document.createElement('img')
+      img.className = 'item-icon'
+      img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><rect width="36" height="36" rx="10" fill="%23e8436b"/><path d="M7 24 L14 15 L20 22 L26 13 L29 17 L29 27 Z" fill="%23ffd9e2"/></svg>'
+      img.alt = ''
+      const info = document.createElement('div')
+      info.className = 'item-info'
+      const t = document.createElement('div')
+      t.className = 'item-title'
+      t.textContent = p.name
+      const sub = document.createElement('div')
+      sub.className = 'item-sub'
+      sub.textContent = fmtSize(p.size || 0) + (p.active ? ' \u00b7 active' : '')
+      info.appendChild(t)
+      info.appendChild(sub)
+      const btn = document.createElement('button')
+      btn.className = 'btn small ' + (p.active ? 'ghost' : '')
+      btn.textContent = p.active ? 'Disable' : 'Use'
+      btn.addEventListener('click', async () => {
+        btn.disabled = true
+        try {
+          await ninoApi.shaders.set(p.active ? null : p.name)
+          refreshShaders()
+        } catch (e) {
+          setStatus('shaders-status', 'Failed: ' + (e.message || e), true)
+          btn.disabled = false
+        }
+      })
+      item.appendChild(img)
+      item.appendChild(info)
+      item.appendChild(btn)
+      el.appendChild(item)
+    }
+  }
+  setStatus('shaders-status', !data.iris ? 'Iris is not installed \u2014 shaders need it. Install it first.' : (data.active ? 'Active shader: ' + data.active : 'No shader active.'))
+}
+
+function setupPacks() {
+  $('btn-packs-open').addEventListener('click', () => ninoApi.packs.openFolder())
+  $('btn-shaders-open').addEventListener('click', () => ninoApi.shaders.openFolder())
+  $('btn-install-iris').addEventListener('click', async () => {
+    const btn = $('btn-install-iris')
+    btn.disabled = true
+    btn.textContent = 'Installing...'
+    setStatus('shaders-status', 'Looking up Iris on Modrinth...')
+    try {
+      const r = await ninoApi.shaders.installIris()
+      setStatus('shaders-status', 'Iris ' + r.version + ' installed for this profile.')
+      refreshShaders()
+    } catch (e) {
+      setStatus('shaders-status', 'Iris install failed: ' + (e.message || e), true)
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Install Iris'
+    }
+  })
+}
+
+/* ---------- account ---------- */
+async function renderAccount() {
+  const acc = await ninoApi.account.get()
+  if (acc) {
+    $('account-view').hidden = false
+    $('account-empty').hidden = true
+    $('account-name').textContent = acc.name
+    $('account-type').textContent = acc.type === 'ms' ? 'Microsoft account' : 'Offline account'
+    $('account-avatar').textContent = (acc.name || '?').charAt(0).toUpperCase()
+  } else {
+    $('account-view').hidden = true
+    $('account-empty').hidden = false
+  }
+}
+
+function setupAccount() {
+  $('btn-offline').addEventListener('click', async () => {
+    const name = $('offline-name').value.trim() || settings.username || 'Nino'
+    const acc = await ninoApi.account.loginOffline(name)
+    setStatus('account-status', `Signed in as offline player "${acc.name}".`)
+    renderAccount()
+  })
+  $('btn-ms').addEventListener('click', async () => {
+    $('btn-ms').disabled = true
+    $('ms-device').hidden = false
+    setStatus('account-status', 'Starting Microsoft login...')
+    try {
+      const acc = await ninoApi.account.msLogin()
+      $('ms-device').hidden = true
+      setStatus('account-status', `Signed in as ${acc.name}.`)
+      renderAccount()
+    } catch (e) {
+      $('ms-device').hidden = true
+      setStatus('account-status', 'Login failed: ' + (e.message || e), true)
+    } finally {
+      $('btn-ms').disabled = false
+    }
+  })
+  $('btn-logout').addEventListener('click', async () => {
+    await ninoApi.account.logout()
+    setStatus('account-status', 'Logged out.')
+    renderAccount()
+  })
+
+  ninoApi.onAccountStatus((s) => {
+    if (s && s.deviceCode) {
+      $('ms-device').hidden = false
+      $('ms-device-message').textContent = s.message || ''
+      $('ms-device-code').textContent = s.deviceCode.user_code
+    } else if (s && s.message) {
+      setStatus('account-status', s.message)
+    }
+  })
+}
+
+/* ---------- settings ---------- */
+function setupSettings() {
+  $('game-dir').value = settings.gameDir
+  $('java-path').value = settings.javaPath
+  $('mc-loader').value = settings.loader
+  $('ram-slider').value = settings.ram
+  $('ram-label').textContent = settings.ram
+  $('write-profiles').checked = !!settings.writeProfiles
+
+  $('game-dir').addEventListener('change', async () => {
+    settings.gameDir = $('game-dir').value.trim()
+    await saveSettings()
+    refreshInstalledMods()
+    refreshInstalledPacks()
+  })
+  $('btn-browse').addEventListener('click', async () => {
+    const dir = await ninoApi.settings.browseGameDir()
+    if (dir) {
+      settings.gameDir = dir
+      $('game-dir').value = dir
+      await saveSettings()
+      refreshInstalledMods()
+      refreshInstalledPacks()
+    }
+  })
+  $('btn-open-dir').addEventListener('click', () => ninoApi.game.openGameDir())
+  $('java-path').addEventListener('change', async () => {
+    settings.javaPath = $('java-path').value.trim()
+    await saveSettings()
+  })
+  $('btn-find-java').addEventListener('click', async () => {
+    const j = await ninoApi.findJava()
+    if (j) {
+      settings.javaPath = j
+      $('java-path').value = j
+      await saveSettings()
+      setStatus('play-status', 'Found Java: ' + j)
+    } else {
+      setStatus('play-status', 'No Java found. Install Java 21+.', true)
+    }
+  })
+  $('write-profiles').addEventListener('change', async () => {
+    settings.writeProfiles = $('write-profiles').checked
+    await saveSettings()
+  })
+  ;(async () => {
+    try {
+      const st = await ninoApi.ui.getState()
+      $('ui-pack').checked = settings.uiPack !== false && st.enabled
+    } catch {
+      $('ui-pack').checked = settings.uiPack !== false
+    }
+  })()
+  $('ui-pack').addEventListener('change', async () => {
+    const on = $('ui-pack').checked
+    settings.uiPack = on
+    await saveSettings()
+    try {
+      const r = await ninoApi.ui.set(on)
+      if (r && r.ok) {
+        $('ui-pack').checked = r.state.enabled
+        setStatus('play-status', on ? 'NinoCraft Pink UI enabled in-game.' : 'NinoCraft Pink UI disabled.')
+      } else {
+        $('ui-pack').checked = !on
+        setStatus('play-status', 'Could not update the in-game UI pack.', true)
+      }
+    } catch (e) {
+      $('ui-pack').checked = !on
+      setStatus('play-status', 'Could not update the in-game UI pack: ' + (e.message || e), true)
+    }
+  })
+  ;(async () => {
+    try {
+      const st = await ninoApi.ninomod.getState()
+      $('nino-modules').checked = st.installed
+    } catch {
+      $('nino-modules').checked = false
+    }
+  })()
+  $('nino-modules').addEventListener('change', async () => {
+    const on = $('nino-modules').checked
+    try {
+      const st = await ninoApi.ninomod.set(on)
+      $('nino-modules').checked = st.installed
+      setStatus('play-status', on ? 'NinoCraft Modules installed. Press R-Shift in game!' : 'NinoCraft Modules removed.')
+    } catch (e) {
+      $('nino-modules').checked = !on
+      setStatus('play-status', 'Could not update modules: ' + (e.message || e), true)
+    }
+  })
+  $('btn-net-test').addEventListener('click', async () => {
+    $('net-result').textContent = 'Testing...'
+    const r = await ninoApi.test()
+    $('net-result').textContent = r.ok ? 'Connected! Latest MC: ' + r.latest.release : 'Failed: ' + (r.error || 'unknown')
+  })
+}
+
+/* ---------- update bubble ---------- */
+function setupUpdate() {
+  const bubble = $('update-bubble')
+  const text = $('update-text')
+  const ver = $('update-version')
+  const bar = $('bubble-bar')
+  const fill = $('update-fill')
+  const dl = $('update-download')
+  const inst = $('update-install')
+
+  $('update-dismiss').addEventListener('click', () => bubble.classList.add('hidden'))
+
+  dl.addEventListener('click', async () => {
+    dl.disabled = true
+    dl.textContent = 'Downloading\u2026'
+    bar.classList.remove('hidden')
+    await ninoApi.update.download()
+  })
+
+  inst.addEventListener('click', () => ninoApi.update.install())
+
+  ninoApi.update.onAvailable((info) => {
+    ver.textContent = 'v' + info.version
+    text.textContent = 'NinoCraft Launcher v' + info.version + ' is ready to download.'
+    dl.classList.remove('hidden')
+    dl.disabled = false
+    dl.textContent = 'Update now'
+    inst.classList.add('hidden')
+    bubble.classList.remove('hidden')
+  })
+
+  ninoApi.update.onProgress((p) => {
+    fill.style.width = Math.min(100, p.percent) + '%'
+  })
+
+  ninoApi.update.onDownloaded(() => {
+    dl.classList.add('hidden')
+    inst.classList.remove('hidden')
+    text.textContent = 'Update downloaded \u2014 restart to install it.'
+  })
+
+  ninoApi.update.onNone(() => {})
+
+  ninoApi.update.onError((msg) => {
+    if (bubble.classList.contains('hidden')) return
+    text.textContent = 'Update failed: ' + msg
+    dl.disabled = false
+    dl.textContent = 'Retry'
+  })
+
+  ninoApi.update.check()
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  spawnPetals()
+  setupTabs()
+  settings = await ninoApi.settings.get()
+  await loadProfiles()
+  setupSettings()
+  setupPlay()
+  setupProfiles()
+  setupAccount()
+  setupPacks()
+  setupSearch('mod-search', 'mod-search-btn', 'mod-results', 'mods-status', 'mod')
+  setupSearch('pack-search', 'pack-search-btn', 'pack-results', 'packs-status', 'modpack')
+  try {
+    await loadVersions()
+  } catch (e) {
+    setStatus('play-status', 'Could not fetch Minecraft versions: ' + (e.message || e), true)
+  }
+  refreshInstalledMods()
+  refreshInstalledPacks()
+  renderAccount()
+  refreshPacks()
+  refreshShaders()
+  setupUpdate()
+}
+
+boot()
