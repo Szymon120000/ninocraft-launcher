@@ -556,34 +556,97 @@ function setupPacks() {
 
 /* ---------- account ---------- */
 async function renderAccount() {
-  const acc = await ninoApi.account.get()
-  if (acc) {
-    $('account-view').hidden = false
-    $('account-empty').hidden = true
-    $('account-name').textContent = acc.name
-    $('account-type').textContent = acc.type === 'ms' ? 'Microsoft account' : 'Offline account'
-    $('account-avatar').textContent = (acc.name || '?').charAt(0).toUpperCase()
-  } else {
-    $('account-view').hidden = true
-    $('account-empty').hidden = false
+  const el = $('account-list')
+  el.innerHTML = ''
+  let data = null
+  try {
+    data = await ninoApi.accounts.list()
+  } catch (e) {
+    el.innerHTML = '<div class="hint">Failed to load accounts.</div>'
+    return
+  }
+  const { accounts, activeId } = data
+  if (!accounts || !accounts.length) {
+    el.innerHTML = '<div class="hint">No accounts yet. Add one above.</div>'
+    return
+  }
+  const canRemove = accounts.length > 1
+  for (const a of accounts) {
+    const item = document.createElement('div')
+    item.className = 'account-item' + (a.uuid === activeId ? ' active' : '')
+    const av = document.createElement('div')
+    av.className = 'avatar'
+    av.textContent = (a.name || '?').charAt(0).toUpperCase()
+    const info = document.createElement('div')
+    info.className = 'item-info'
+    const title = document.createElement('div')
+    title.className = 'item-title'
+    title.textContent = a.name
+    const sub = document.createElement('div')
+    sub.className = 'item-sub'
+    sub.textContent = a.type === 'ms' ? 'Microsoft account' : 'Offline account'
+    info.appendChild(title)
+    info.appendChild(sub)
+    const actions = document.createElement('div')
+    actions.className = 'item-actions'
+    if (a.uuid !== activeId) {
+      const activateBtn = document.createElement('button')
+      activateBtn.className = 'btn small'
+      activateBtn.textContent = 'Use'
+      activateBtn.addEventListener('click', async () => {
+        activateBtn.disabled = true
+        await ninoApi.accounts.setActive(a.uuid)
+        setStatus('account-status', 'Switched to ' + a.name + '.')
+        renderAccount()
+      })
+      actions.appendChild(activateBtn)
+    } else {
+      const badge = document.createElement('span')
+      badge.className = 'hint'
+      badge.textContent = 'Active'
+      badge.style.color = 'var(--rose-dark)'
+      badge.style.fontWeight = '700'
+      actions.appendChild(badge)
+    }
+    if (canRemove) {
+      const removeBtn = document.createElement('button')
+      removeBtn.className = 'btn small ghost'
+      removeBtn.textContent = 'Remove'
+      removeBtn.addEventListener('click', async () => {
+        removeBtn.disabled = true
+        await ninoApi.accounts.remove(a.uuid)
+        setStatus('account-status', 'Removed ' + a.name + '.')
+        renderAccount()
+      })
+      actions.appendChild(removeBtn)
+    }
+    item.appendChild(av)
+    item.appendChild(info)
+    item.appendChild(actions)
+    el.appendChild(item)
   }
 }
 
 function setupAccount() {
   $('btn-offline').addEventListener('click', async () => {
     const name = $('offline-name').value.trim() || settings.username || 'Nino'
-    const acc = await ninoApi.account.loginOffline(name)
-    setStatus('account-status', `Signed in as offline player "${acc.name}".`)
-    renderAccount()
+    try {
+      await ninoApi.accounts.addOffline(name)
+      $('offline-name').value = ''
+      setStatus('account-status', 'Added offline account "' + name + '".')
+      renderAccount()
+    } catch (e) {
+      setStatus('account-status', 'Failed: ' + (e.message || e), true)
+    }
   })
   $('btn-ms').addEventListener('click', async () => {
     $('btn-ms').disabled = true
     $('ms-device').hidden = false
     setStatus('account-status', 'Starting Microsoft login...')
     try {
-      const acc = await ninoApi.account.msLogin()
+      await ninoApi.accounts.addMs()
       $('ms-device').hidden = true
-      setStatus('account-status', `Signed in as ${acc.name}.`)
+      setStatus('account-status', 'Microsoft account added.')
       renderAccount()
     } catch (e) {
       $('ms-device').hidden = true
@@ -591,11 +654,6 @@ function setupAccount() {
     } finally {
       $('btn-ms').disabled = false
     }
-  })
-  $('btn-logout').addEventListener('click', async () => {
-    await ninoApi.account.logout()
-    setStatus('account-status', 'Logged out.')
-    renderAccount()
   })
 
   ninoApi.onAccountStatus((s) => {

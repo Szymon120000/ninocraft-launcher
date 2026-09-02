@@ -50,9 +50,16 @@ contextBridge.exposeInMainWorld('nino', {
   },
   account: {
     get: () => ipcRenderer.invoke('account:get'),
-    loginOffline: (name) => ipcRenderer.invoke('account:loginOffline', name),
-    msLogin: () => ipcRenderer.invoke('account:msLogin'),
-    logout: () => ipcRenderer.invoke('account:logout')
+    loginOffline: (name) => ipcRenderer.invoke('accounts:addOffline', name),
+    msLogin: () => ipcRenderer.invoke('accounts:addMs'),
+    logout: () => ipcRenderer.invoke('accounts:remove')
+  },
+  accounts: {
+    list: () => ipcRenderer.invoke('accounts:list'),
+    addOffline: (name) => ipcRenderer.invoke('accounts:addOffline', name),
+    addMs: () => ipcRenderer.invoke('accounts:addMs'),
+    remove: (uuid) => ipcRenderer.invoke('accounts:remove', uuid),
+    setActive: (uuid) => ipcRenderer.invoke('accounts:setActive', uuid)
   },
   game: {
     launch: () => ipcRenderer.invoke('game:launch'),

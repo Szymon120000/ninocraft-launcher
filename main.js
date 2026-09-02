@@ -108,48 +108,45 @@ function registerIpc() {
   ipcMain.handle('modpacks:list', () => modrinth.listModpacks())
   ipcMain.handle('modpacks:remove', (_e, slug) => modrinth.removeModpack(slug))
 
-  ipcMain.handle('account:get', () => {
-    const cfg = config.load()
-    const acc = cfg.account
-    if (!acc) return null
-    return {
-      type: acc.type,
-      name: acc.name,
-      uuid: acc.uuid,
-      expiresAt: acc.expiresAt || null
-    }
-  })
+  ipcMain.handle('accounts:list', () => config.listAccounts())
 
-  ipcMain.handle('account:loginOffline', (_e, name) => {
+  ipcMain.handle('accounts:addOffline', (_e, name) => {
     const acc = auth.offlineAccount(name)
-    const cfg = config.load()
-    cfg.account = acc
-    if (name && typeof name === 'string' && name.trim()) cfg.username = name.trim()
-    config.save(cfg)
-    return { type: acc.type, name: acc.name, uuid: acc.uuid }
+    config.addAccount(acc)
+    return config.listAccounts()
   })
 
-  ipcMain.handle('account:msLogin', async () => {
-    return auth.msLogin().then((acc) => {
-      const cfg = config.load()
-      cfg.account = acc
-      config.save(cfg)
-      return { type: acc.type, name: acc.name, uuid: acc.uuid }
-    })
+  ipcMain.handle('accounts:addMs', async () => {
+    const acc = await auth.msLogin()
+    config.addAccount(acc)
+    return config.listAccounts()
   })
 
-  ipcMain.handle('account:logout', () => {
-    const cfg = config.load()
-    cfg.account = null
-    config.save(cfg)
-    return true
+  ipcMain.handle('accounts:remove', (_e, uuid) => {
+    config.removeAccount(uuid)
+    return config.listAccounts()
+  })
+
+  ipcMain.handle('accounts:setActive', (_e, uuid) => {
+    config.setActiveAccount(uuid)
+    return config.listAccounts()
+  })
+
+  ipcMain.handle('account:get', () => {
+    const acc = config.getActiveAccount()
+    if (!acc) return null
+    return { type: acc.type, name: acc.name, uuid: acc.uuid, expiresAt: acc.expiresAt || null }
   })
 
   ipcMain.handle('game:launch', async () => {
     const cfg = config.load()
     if (cfg.uiPack !== false) uipack.apply(cfg.gameDir, true)
-    let acc = cfg.account || auth.offlineAccount(cfg.username)
-    if (acc.type === 'ms') acc = await auth.refreshAccount(acc)
+    let acc = config.getActiveAccount() || auth.offlineAccount(cfg.username)
+    if (acc.type === 'ms') {
+      const refreshed = await auth.refreshAccount(acc)
+      if (refreshed !== acc) config.refreshAccountData(acc.uuid, refreshed)
+      acc = refreshed
+    }
     const result = await game.launch(acc)
     return result
   })

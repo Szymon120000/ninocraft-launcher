@@ -30,7 +30,7 @@
       <button class="nav-btn" data-tab="account">Account</button>
       <button class="nav-btn" data-tab="settings">Settings</button>
     </nav>
-    <div class="sidebar-foot">ver 1.2.0 &middot; made with love</div>
+    <div class="sidebar-foot">ver 1.3.0 &middot; made with love</div>
   </aside>
 
   <main id="content">
@@ -141,22 +141,14 @@
     <section id="tab-account" class="tab">
       <h2 class="tab-title">Account</h2>
       <div class="card account-card">
-        <div id="account-view" hidden>
-          <div class="avatar" id="account-avatar"></div>
-          <div class="account-info">
-            <div id="account-name" class="account-name"></div>
-            <div id="account-type" class="account-type"></div>
-          </div>
-          <button id="btn-logout" class="btn small">Log out</button>
-        </div>
-        <div id="account-empty">
-          <p>No account yet. Log in with Microsoft for online play, or use offline mode.</p>
+        <div class="account-add-row">
+          <button id="btn-ms" class="btn small">Add Microsoft account</button>
           <div class="offline-row">
             <input id="offline-name" type="text" placeholder="Offline username" />
-            <button id="btn-offline" class="btn small">Play offline</button>
+            <button id="btn-offline" class="btn small">Add offline</button>
           </div>
-          <button id="btn-ms" class="btn small">Log in with Microsoft</button>
         </div>
+        <div id="account-list" class="list"></div>
       </div>
       <div id="ms-device" class="card" hidden>
         <h3>Microsoft device code login</h3>
