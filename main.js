@@ -13,6 +13,7 @@ const packs = require('./lib/packs')
 const shaders = require('./lib/shaders')
 const ninomod = require('./lib/ninocraft-mod')
 const update = require('./lib/update')
+const bundled = require('./lib/bundled-mods')
 
 let win = null
 
@@ -28,8 +29,9 @@ function createWindow() {
     height: 720,
     minWidth: 900,
     minHeight: 620,
-    title: 'NinoCraft',
-    backgroundColor: '#fff5f7',
+    frame: false,
+    title: '67 Skid Launcher',
+    backgroundColor: '#1a1a1a',
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -45,6 +47,10 @@ function createWindow() {
 }
 
 function registerIpc() {
+  ipcMain.on('titlebar:minimize', () => { if (win) win.minimize() })
+  ipcMain.on('titlebar:maximize', () => { if (win) { win.isMaximized() ? win.unmaximize() : win.maximize() } })
+  ipcMain.on('titlebar:close', () => { if (win) win.close() })
+
   ipcMain.handle('settings:get', () => config.load())
 
   ipcMain.handle('settings:set', (_e, patch) => {
@@ -100,6 +106,59 @@ function registerIpc() {
 
   ipcMain.handle('mods:list', () => modrinth.listMods())
   ipcMain.handle('mods:remove', (_e, fileName) => modrinth.removeMod(fileName))
+
+  ipcMain.handle('mods:importJar', async (_e, filePath) => {
+    const cfg = config.load()
+    const modsDir = path.join(cfg.gameDir, 'mods')
+    fs.mkdirSync(modsDir, { recursive: true })
+    const fileName = path.basename(filePath)
+    if (!fileName.endsWith('.jar')) throw new Error('Not a .jar file')
+    const dest = path.join(modsDir, fileName)
+    fs.copyFileSync(filePath, dest)
+    return { fileName }
+  })
+
+  ipcMain.handle('modpacks:importZip', async (_e, filePath) => {
+    const cfg = config.load()
+    const modsDir = path.join(cfg.gameDir, 'mods')
+    fs.mkdirSync(modsDir, { recursive: true })
+    const fileName = path.basename(filePath)
+    if (!fileName.endsWith('.zip')) throw new Error('Not a .zip file')
+    const zip = new (require('adm-zip'))(filePath)
+    const entries = zip.getEntries()
+    let copied = 0
+    for (const entry of entries) {
+      if (entry.isDirectory) continue
+      const name = path.basename(entry.entryName)
+      if (!name.endsWith('.jar')) continue
+      const dest = path.join(modsDir, name)
+      fs.writeFileSync(dest, entry.getData())
+      copied++
+    }
+    return { copied }
+  })
+
+  ipcMain.handle('packs:importZip', async (_e, filePath) => {
+    const cfg = config.load()
+    const destDir = path.join(cfg.gameDir, 'resourcepacks')
+    fs.mkdirSync(destDir, { recursive: true })
+    const fileName = path.basename(filePath)
+    if (!fileName.endsWith('.zip')) throw new Error('Not a .zip file')
+    const dest = path.join(destDir, fileName)
+    fs.copyFileSync(filePath, dest)
+    return { fileName }
+  })
+
+  ipcMain.handle('shaders:importZip', async (_e, filePath) => {
+    const cfg = config.load()
+    const destDir = path.join(cfg.gameDir, 'shaderpacks')
+    fs.mkdirSync(destDir, { recursive: true })
+    const fileName = path.basename(filePath)
+    if (!fileName.endsWith('.zip')) throw new Error('Not a .zip file')
+    const dest = path.join(destDir, fileName)
+    fs.copyFileSync(filePath, dest)
+    return { fileName }
+  })
 
   ipcMain.handle('modpacks:install', async (_e, args) => {
     const [project, version] = await Promise.all([modrinth.getProject(args.projectId), modrinth.getVersion(args.versionId)])
@@ -270,6 +329,7 @@ app.whenReady().then(() => {
   game.init(() => config.effective(), bus)
   auth.init(bus)
   if (cfg.uiPack !== false) uipack.apply(cfg.gameDir, true)
+  bundled.install(cfg.gameDir)
   Menu.setApplicationMenu(null)
   createWindow()
   registerIpc()

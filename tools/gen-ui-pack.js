@@ -356,28 +356,28 @@ for (const name of ['title/minecraft.png', 'title/edition.png']) {
 }
 {
   const splashes = [
-    'Nino baked this launcher just for you!',
-    'Fresh from Nino\'s oven!',
-    'You\'re my number one!',
-    'Pink is the prettiest color!',
-    'Best of the five sisters!',
-    'Say yes to the ribbon!',
-    'Made with love, not jealousy!',
-    'Someday, I\'ll be the best chef!',
-    'A little devil approved!',
-    'Practice makes perfect pastry!',
-    'The secret ingredient is Nino!',
-    'Four stars out of five... love!',
-    'Coffee, cake, and crafting!',
-    'おいしい ゲーム！',
-    'Onee-san approved!',
-    'Don\'t forget to take a break!',
-    'NinoCraft: bake, play, love!'
+    '67 Skid approved!',
+    'Skid it to win it!',
+    'Exploit free since day one!',
+    'Modded and loaded!',
+    'Fabric go brrr!',
+    'No anti-cheat, no problem!',
+    'Clean client, dirty gameplay!',
+    'Skid harder!',
+    'Client diff!',
+    'Grief resistant!',
+    'Build hacks enabled!',
+    'Skybasing intensifies!',
+    'Crystal pvp ready!',
+    'Mesh kit included!',
+    'Auto pearl on!',
+    'Fast break, fast place!',
+    '67 Skid: the only way to play!'
   ]
   const f = path.join(OUT, 'assets/minecraft/splashes.txt')
   fs.mkdirSync(path.dirname(f), { recursive: true })
   fs.writeFileSync(f, splashes.join('\n') + '\n')
-  console.log('splashes: ' + splashes.length + ' Nino-themed splash texts')
+  console.log('splashes: ' + splashes.length + ' splash texts')
 }
 
 for (const mc of ['button', 'button_highlighted', 'button_disabled', 'text_field', 'text_field_highlighted', 'slider', 'slider_highlighted', 'slider_handle', 'slider_handle_highlighted', 'tab', 'tab_highlighted', 'tab_selected', 'tab_selected_highlighted', 'scroller', 'scroller_background']) {
@@ -416,7 +416,7 @@ fs.writeFileSync(path.join(OUT, 'pack.mcmeta'), JSON.stringify({
   pack: {
     pack_format: 64,
     supported_formats: { min_inclusive: 34, max_inclusive: 64 },
-    description: 'NinoCraft Pink UI - Nino Nakano theme'
+    description: '67 Skid Launcher UI'
   }
 }, null, 2))
 

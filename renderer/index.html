@@ -3,24 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
-  <title>NinoCraft</title>
+  <title>67 Skid Launcher</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="petals" aria-hidden="true"></div>
+  <div id="titlebar">
+    <span id="titlebar-title">67 Skid Launcher</span>
+    <div id="titlebar-controls">
+      <button id="btn-minimize" class="titlebar-btn" aria-label="Minimize">&#9472;</button>
+      <button id="btn-maximize" class="titlebar-btn" aria-label="Maximize">&#9723;</button>
+      <button id="btn-close" class="titlebar-btn close" aria-label="Close">&#10005;</button>
+    </div>
+  </div>
 
   <aside id="sidebar">
-    <div class="brand">
-      <div class="bow" aria-hidden="true">
-        <span class="loop left"></span>
-        <span class="loop right"></span>
-        <span class="knot"></span>
-        <span class="tail left"></span>
-        <span class="tail right"></span>
-      </div>
-      <h1 class="brand-name">NinoCraft</h1>
-      <p class="brand-tag">the launcher Nino baked just for you</p>
-    </div>
     <nav>
       <button class="nav-btn active" data-tab="play">Play</button>
       <button class="nav-btn" data-tab="mods">Mods</button>
@@ -30,16 +26,16 @@
       <button class="nav-btn" data-tab="account">Account</button>
       <button class="nav-btn" data-tab="settings">Settings</button>
     </nav>
-    <div class="sidebar-foot">ver 1.3.0 &middot; made with love</div>
+    <div class="sidebar-foot">67 Skid v2.0</div>
   </aside>
 
   <main id="content">
     <section id="tab-play" class="tab active">
-      <h2 class="tab-title">Ready to play?</h2>
+      <h2 class="tab-title">Launch</h2>
       <div class="profile-row">
         <label for="profile-select">Profile</label>
         <select id="profile-select"></select>
-        <button id="btn-profile-new" class="btn ghost small">New profile</button>
+        <button id="btn-profile-new" class="btn ghost small">New</button>
         <button id="btn-profile-del" class="btn ghost small">Delete</button>
       </div>
       <div class="profile-row" id="profile-new-row" hidden>
@@ -64,7 +60,7 @@
           </select>
         </div>
         <div class="field grow">
-          <label for="ram-slider">Memory: <span id="ram-label">4096</span> MB</label>
+          <label for="ram-slider">RAM: <span id="ram-label">4096</span> MB</label>
           <input type="range" id="ram-slider" min="1024" max="16384" step="256" value="4096" />
         </div>
       </div>
@@ -72,47 +68,47 @@
       <div class="launch-row">
         <button id="btn-play" class="btn play">Launch</button>
         <button id="btn-stop" class="btn ghost" hidden>Stop</button>
-        <button id="btn-official" class="btn ghost">Open Official Launcher</button>
-        <button id="btn-open-mods" class="btn ghost">Open Mods Folder</button>
+        <button id="btn-official" class="btn ghost">Official Launcher</button>
+        <button id="btn-open-mods" class="btn ghost">Mods Folder</button>
       </div>
 
-      <div class="status-line" id="play-status">Loading versions...</div>
+      <div class="status-line" id="play-status">Loading...</div>
       <div id="progress-wrap" class="progress-wrap" hidden>
         <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
         <span id="progress-label" class="progress-label"></span>
       </div>
 
       <div class="console card">
-        <div class="console-title">Game log</div>
+        <div class="console-title">Log</div>
         <pre id="console" class="console-body"></pre>
       </div>
     </section>
 
     <section id="tab-mods" class="tab">
       <div class="tab-head">
-        <h2 class="tab-title">Modrinth Mods</h2>
+        <h2 class="tab-title">Mods</h2>
         <div class="search-row">
-          <input id="mod-search" type="text" placeholder="Search mods on Modrinth..." />
+          <input id="mod-search" type="text" placeholder="Search Modrinth..." />
           <button id="mod-search-btn" class="btn small">Search</button>
         </div>
       </div>
-      <div class="status-line" id="mods-status">Type a search to find mods for your version.</div>
+      <div class="status-line" id="mods-status">Search or drag .jar files in.</div>
       <div id="mod-results" class="cards"></div>
-      <h3 class="sub-title">Installed mods</h3>
+      <h3 class="sub-title">Installed</h3>
       <div id="installed-mods" class="list"></div>
     </section>
 
     <section id="tab-modpacks" class="tab">
       <div class="tab-head">
-        <h2 class="tab-title">Modrinth Modpacks</h2>
+        <h2 class="tab-title">Modpacks</h2>
         <div class="search-row">
-          <input id="pack-search" type="text" placeholder="Search modpacks on Modrinth..." />
+          <input id="pack-search" type="text" placeholder="Search Modrinth..." />
           <button id="pack-search-btn" class="btn small">Search</button>
         </div>
       </div>
-      <div class="status-line" id="packs-status">Type a search to find modpacks.</div>
+      <div class="status-line" id="packs-status">Search or drag .zip files in.</div>
       <div id="pack-results" class="cards"></div>
-      <h3 class="sub-title">Installed modpacks</h3>
+      <h3 class="sub-title">Installed</h3>
       <div id="installed-packs" class="list"></div>
     </section>
 
@@ -121,7 +117,7 @@
         <h2 class="tab-title">Resource Packs</h2>
         <button id="btn-packs-open" class="btn small">Open folder</button>
       </div>
-      <div class="status-line" id="packs-status">Loading packs...</div>
+      <div class="status-line" id="packs-status">Loading...</div>
       <div id="packs-list" class="list"></div>
     </section>
 
@@ -131,10 +127,10 @@
         <button id="btn-shaders-open" class="btn small">Open folder</button>
       </div>
       <div id="shaders-warn" class="card" hidden>
-        <p>Iris is not installed, so shaders cannot be used. Install it from Modrinth (make sure it is compatible with your Sodium version).</p>
+        <p>Iris isn't installed. Shaders need it.</p>
         <button id="btn-install-iris" class="btn small">Install Iris</button>
       </div>
-      <div class="status-line" id="shaders-status">Loading shaderpacks...</div>
+      <div class="status-line" id="shaders-status">Loading...</div>
       <div id="shaders-list" class="list"></div>
     </section>
 
@@ -142,19 +138,19 @@
       <h2 class="tab-title">Account</h2>
       <div class="card account-card">
         <div class="account-add-row">
-          <button id="btn-ms" class="btn small">Add Microsoft account</button>
+          <button id="btn-ms" class="btn small">Add Microsoft</button>
           <div class="offline-row">
-            <input id="offline-name" type="text" placeholder="Offline username" />
+            <input id="offline-name" type="text" placeholder="Username" />
             <button id="btn-offline" class="btn small">Add offline</button>
           </div>
         </div>
         <div id="account-list" class="list"></div>
       </div>
       <div id="ms-device" class="card" hidden>
-        <h3>Microsoft device code login</h3>
+        <h3>Microsoft login</h3>
         <p id="ms-device-message"></p>
         <div id="ms-device-code" class="device-code"></div>
-        <p class="hint">Wait for the browser step to finish. This window will continue automatically.</p>
+        <p class="hint">Waiting for browser...</p>
       </div>
       <div class="status-line" id="account-status"></div>
     </section>
@@ -163,7 +159,7 @@
       <h2 class="tab-title">Settings</h2>
       <div class="card">
         <div class="field">
-          <label for="game-dir">Game directory (.minecraft)</label>
+          <label for="game-dir">Game directory</label>
           <div class="input-row">
             <input id="game-dir" type="text" />
             <button id="btn-browse" class="btn small">Browse</button>
@@ -171,7 +167,7 @@
           </div>
         </div>
         <div class="field">
-          <label for="java-path">Java path <span class="hint">(leave empty to auto-detect)</span></label>
+          <label for="java-path">Java path <span class="hint">(auto-detect if empty)</span></label>
           <div class="input-row">
             <input id="java-path" type="text" />
             <button id="btn-find-java" class="btn small">Auto-detect</button>
@@ -180,19 +176,7 @@
         <div class="field">
           <label class="check-row">
             <input id="write-profiles" type="checkbox" />
-            Add a NinoCraft profile to the official launcher
-          </label>
-        </div>
-        <div class="field">
-          <label class="check-row">
-            <input id="ui-pack" type="checkbox" />
-            NinoCraft Pink UI in-game theme
-          </label>
-        </div>
-        <div class="field">
-          <label class="check-row">
-            <input id="nino-modules" type="checkbox" />
-            NinoCraft Modules <span class="hint">(R-Shift in-game menu)</span>
+            Add profile to official launcher
           </label>
         </div>
         <div class="field row">
@@ -200,23 +184,18 @@
           <span id="net-result" class="hint"></span>
         </div>
       </div>
-      <div class="card nino-card">
-        <p>NinoCraft is a fan-made launcher themed after Nino Nakano from <em>The Quintessential Quintuplets</em>.</p>
-        <p class="hint">Minecraft is a trademark of Mojang AB. This project is not affiliated with Mojang or Microsoft. Mods come from Modrinth.</p>
-      </div>
     </section>
   </main>
 
   <div id="update-bubble" class="hidden" role="status">
     <div class="bubble-head">
-      <span class="bubble-heart" aria-hidden="true">&#9829;</span>
-      <span class="bubble-title">Update available</span>
-      <button id="update-dismiss" class="bubble-x" title="Dismiss" aria-label="Dismiss">&#10005;</button>
+      <span class="bubble-title">Update</span>
+      <button id="update-dismiss" class="bubble-x" title="Dismiss">&#10005;</button>
     </div>
-    <p id="update-text">NinoCraft Launcher <b id="update-version"></b> is ready to download.</p>
+    <p id="update-text">67 Skid Launcher <b id="update-version"></b> is available.</p>
     <div id="bubble-bar" class="bubble-bar hidden"><div id="update-fill"></div></div>
     <div class="bubble-actions">
-      <button id="update-download" class="btn small">Update now</button>
+      <button id="update-download" class="btn small">Update</button>
       <button id="update-install" class="btn small hidden">Restart &amp; install</button>
     </div>
   </div>

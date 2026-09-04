@@ -53,21 +53,11 @@ function fmtCount(n) {
   return String(n)
 }
 
-/* ---------- petals ---------- */
-function spawnPetals() {
-  const wrap = $('petals')
-  for (let i = 0; i < 14; i++) {
-    const p = document.createElement('div')
-    p.className = 'petal'
-    const size = 8 + Math.random() * 10
-    p.style.width = size + 'px'
-    p.style.height = size + 'px'
-    p.style.left = Math.random() * 100 + 'vw'
-    p.style.animationDuration = 8 + Math.random() * 9 + 's'
-    p.style.animationDelay = -Math.random() * 14 + 's'
-    p.style.opacity = (0.3 + Math.random() * 0.4).toFixed(2)
-    wrap.appendChild(p)
-  }
+/* ---------- titlebar ---------- */
+function setupTitlebar() {
+  $('btn-minimize').addEventListener('click', () => nino.titlebar.minimize())
+  $('btn-maximize').addEventListener('click', () => nino.titlebar.maximize())
+  $('btn-close').addEventListener('click', () => nino.titlebar.close())
 }
 
 /* ---------- tabs ---------- */
@@ -225,15 +215,15 @@ function setupPlay() {
 
 async function onPlay() {
   if (gameRunning) return
-  setStatus('play-status', 'Preparing the oven...')
+  setStatus('play-status', 'Firing up...')
   $('btn-play').disabled = true
   $('btn-play').textContent = 'Launching...'
   $('btn-stop').hidden = false
-  log('== NinoCraft launch session ==')
+  log('== 67 Skid launch session ==')
   try {
     await ninoApi.game.launch()
     gameRunning = true
-    setStatus('play-status', 'Minecraft is running! Enjoy!')
+    setStatus('play-status', 'Minecraft is running!')
     $('btn-play').disabled = true
     $('btn-play').textContent = 'In game...'
   } catch (e) {
@@ -333,17 +323,17 @@ function setupSearch(inputId, btnId, resultsId, statusId, type) {
     const el = $(resultsId)
     el.innerHTML = ''
     if (!q) {
-      setStatus(statusId, 'Type a search to find ' + (type === 'modpack' ? 'modpacks.' : 'mods.'))
+    setStatus(statusId, 'Type a search to find ' + (type === 'modpack' ? 'modpacks' : 'mods') + '.')
       return
     }
-    setStatus(statusId, 'Searching Modrinth...')
+    setStatus(statusId, 'Searching...')
     try {
       const data = await ninoApi.modrinth.search({ query: q, type })
       const hits = data.hits || []
-      setStatus(statusId, `Found ${hits.length} result${hits.length === 1 ? '' : 's'}.`)
+    setStatus(statusId, `Found ${hits.length} result${hits.length === 1 ? '' : 's'}.`)
       hits.forEach((h) => el.appendChild(cardFor(h, type)))
     } catch (e) {
-      setStatus(statusId, 'Search failed: ' + (e.message || e), true)
+    setStatus(statusId, 'Search failed: ' + (e.message || e), true)
     }
   }
   $(btnId).addEventListener('click', run)
@@ -392,7 +382,7 @@ async function refreshInstalledMods() {
     installedMods = []
   }
   if (!installedMods.length) {
-    el.innerHTML = '<div class="hint">No mods installed yet. Search above to add some.</div>'
+    el.innerHTML = '<div class="hint">Nothing here yet. Search above or drag .jar files in.</div>'
     return
   }
   installedMods.forEach((m) => {
@@ -413,7 +403,7 @@ async function refreshInstalledPacks() {
     installedPacks = []
   }
   if (!installedPacks.length) {
-    el.innerHTML = '<div class="hint">No modpacks installed yet.</div>'
+    el.innerHTML = '<div class="hint">No modpacks installed.</div>'
     return
   }
   installedPacks.forEach((p) => {
@@ -433,11 +423,11 @@ async function refreshPacks() {
   try {
     list = await ninoApi.packs.list()
   } catch (e) {
-    setStatus('packs-status', 'Failed to list packs: ' + (e.message || e), true)
+    setStatus('packs-status', 'Couldn\'t load packs: ' + (e.message || e), true)
     return
   }
   if (!list.length) {
-    el.innerHTML = '<div class="hint">No resource packs found. Drop packs into the resourcepacks folder.</div>'
+    el.innerHTML = '<div class="hint">No packs found. Drop .zip resource packs here or into the folder.</div>'
     setStatus('packs-status', '')
     return
   }
@@ -487,12 +477,12 @@ async function refreshShaders() {
   try {
     data = await ninoApi.shaders.list()
   } catch (e) {
-    setStatus('shaders-status', 'Failed to list shaders: ' + (e.message || e), true)
+    setStatus('shaders-status', 'Couldn\'t load shaders: ' + (e.message || e), true)
     return
   }
   $('shaders-warn').hidden = data.iris
   if (!data.packs.length) {
-    el.innerHTML = '<div class="hint">No shader packs found. Put .zip shader packs into the shaderpacks folder.</div>'
+    el.innerHTML = '<div class="hint">No shaders found. Drop .zip shader packs here or into the folder.</div>'
   } else {
     for (const p of data.packs) {
       const item = document.createElement('div')
@@ -530,7 +520,7 @@ async function refreshShaders() {
       el.appendChild(item)
     }
   }
-  setStatus('shaders-status', !data.iris ? 'Iris is not installed \u2014 shaders need it. Install it first.' : (data.active ? 'Active shader: ' + data.active : 'No shader active.'))
+  setStatus('shaders-status', !data.iris ? 'Iris isn\'t installed \u2014 shaders need it.' : (data.active ? 'Active shader: ' + data.active : 'No shader active.'))
 }
 
 function setupPacks() {
@@ -540,7 +530,7 @@ function setupPacks() {
     const btn = $('btn-install-iris')
     btn.disabled = true
     btn.textContent = 'Installing...'
-    setStatus('shaders-status', 'Looking up Iris on Modrinth...')
+    setStatus('shaders-status', 'Looking up Iris...')
     try {
       const r = await ninoApi.shaders.installIris()
       setStatus('shaders-status', 'Iris ' + r.version + ' installed for this profile.')
@@ -562,7 +552,7 @@ async function renderAccount() {
   try {
     data = await ninoApi.accounts.list()
   } catch (e) {
-    el.innerHTML = '<div class="hint">Failed to load accounts.</div>'
+    el.innerHTML = '<div class="hint">Couldn\'t load accounts.</div>'
     return
   }
   const { accounts, activeId } = data
@@ -629,14 +619,14 @@ async function renderAccount() {
 
 function setupAccount() {
   $('btn-offline').addEventListener('click', async () => {
-    const name = $('offline-name').value.trim() || settings.username || 'Nino'
+    const name = $('offline-name').value.trim() || settings.username || 'Player'
     try {
       await ninoApi.accounts.addOffline(name)
       $('offline-name').value = ''
       setStatus('account-status', 'Added offline account "' + name + '".')
       renderAccount()
     } catch (e) {
-      setStatus('account-status', 'Failed: ' + (e.message || e), true)
+      setStatus('account-status', 'Couldn\'t add account: ' + (e.message || e), true)
     }
   })
   $('btn-ms').addEventListener('click', async () => {
@@ -712,51 +702,6 @@ function setupSettings() {
     settings.writeProfiles = $('write-profiles').checked
     await saveSettings()
   })
-  ;(async () => {
-    try {
-      const st = await ninoApi.ui.getState()
-      $('ui-pack').checked = settings.uiPack !== false && st.enabled
-    } catch {
-      $('ui-pack').checked = settings.uiPack !== false
-    }
-  })()
-  $('ui-pack').addEventListener('change', async () => {
-    const on = $('ui-pack').checked
-    settings.uiPack = on
-    await saveSettings()
-    try {
-      const r = await ninoApi.ui.set(on)
-      if (r && r.ok) {
-        $('ui-pack').checked = r.state.enabled
-        setStatus('play-status', on ? 'NinoCraft Pink UI enabled in-game.' : 'NinoCraft Pink UI disabled.')
-      } else {
-        $('ui-pack').checked = !on
-        setStatus('play-status', 'Could not update the in-game UI pack.', true)
-      }
-    } catch (e) {
-      $('ui-pack').checked = !on
-      setStatus('play-status', 'Could not update the in-game UI pack: ' + (e.message || e), true)
-    }
-  })
-  ;(async () => {
-    try {
-      const st = await ninoApi.ninomod.getState()
-      $('nino-modules').checked = st.installed
-    } catch {
-      $('nino-modules').checked = false
-    }
-  })()
-  $('nino-modules').addEventListener('change', async () => {
-    const on = $('nino-modules').checked
-    try {
-      const st = await ninoApi.ninomod.set(on)
-      $('nino-modules').checked = st.installed
-      setStatus('play-status', on ? 'NinoCraft Modules installed. Press R-Shift in game!' : 'NinoCraft Modules removed.')
-    } catch (e) {
-      $('nino-modules').checked = !on
-      setStatus('play-status', 'Could not update modules: ' + (e.message || e), true)
-    }
-  })
   $('btn-net-test').addEventListener('click', async () => {
     $('net-result').textContent = 'Testing...'
     const r = await ninoApi.test()
@@ -787,7 +732,7 @@ function setupUpdate() {
 
   ninoApi.update.onAvailable((info) => {
     ver.textContent = 'v' + info.version
-    text.textContent = 'NinoCraft Launcher v' + info.version + ' is ready to download.'
+    text.textContent = '67 Skid Launcher v' + info.version + ' is ready to download.'
     dl.classList.remove('hidden')
     dl.disabled = false
     dl.textContent = 'Update now'
@@ -817,9 +762,102 @@ function setupUpdate() {
   ninoApi.update.check()
 }
 
+/* ---------- drag and drop ---------- */
+function setupDragDropTab(tabId, opts) {
+  const tab = $(tabId)
+  if (!tab) return
+  let dragCounter = 0
+
+  tab.addEventListener('dragover', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  })
+
+  tab.addEventListener('dragenter', (e) => {
+    e.preventDefault()
+    dragCounter++
+    tab.classList.add('drag-over')
+  })
+
+  tab.addEventListener('dragleave', (e) => {
+    e.preventDefault()
+    dragCounter--
+    if (dragCounter <= 0) {
+      dragCounter = 0
+      tab.classList.remove('drag-over')
+    }
+  })
+
+  tab.addEventListener('drop', async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter = 0
+    tab.classList.remove('drag-over')
+
+    const files = e.dataTransfer.files
+    if (!files || !files.length) return
+
+    const matched = []
+    for (let i = 0; i < files.length; i++) {
+      const p = files[i].path
+      if (!p) continue
+      if (opts.filter(p)) matched.push(p)
+    }
+    if (!matched.length) {
+      setStatus(opts.statusId, opts.emptyMsg, true)
+      return
+    }
+
+    setStatus(opts.statusId, 'Importing ' + matched.length + ' file' + (matched.length === 1 ? '' : 's') + '...')
+    let ok = 0
+    let fail = 0
+    for (const p of matched) {
+      try {
+        await opts.importFn(p)
+        ok++
+      } catch {
+        fail++
+      }
+    }
+    setStatus(opts.statusId, (ok ? 'Added ' + ok : '') + (fail ? ', ' + fail + ' failed' : '') + '.', fail > 0)
+    if (opts.onDone) opts.onDone()
+  })
+}
+
+function setupDragDrop() {
+  setupDragDropTab('tab-mods', {
+    filter: (p) => p.endsWith('.jar'),
+    emptyMsg: 'Drop .jar files to add mods.',
+    statusId: 'mods-status',
+    importFn: (p) => ninoApi.mods.importJar(p),
+    onDone: () => refreshInstalledMods()
+  })
+  setupDragDropTab('tab-modpacks', {
+    filter: (p) => p.endsWith('.zip'),
+    emptyMsg: 'Drop .zip modpacks here.',
+    statusId: 'packs-status',
+    importFn: (p) => ninoApi.modpacks.importZip(p),
+    onDone: () => refreshInstalledPacks()
+  })
+  setupDragDropTab('tab-packs', {
+    filter: (p) => p.endsWith('.zip'),
+    emptyMsg: 'Drop .zip resource packs here.',
+    statusId: 'packs-status',
+    importFn: (p) => ninoApi.packs.importZip(p),
+    onDone: () => refreshPacks()
+  })
+  setupDragDropTab('tab-shaders', {
+    filter: (p) => p.endsWith('.zip'),
+    emptyMsg: 'Drop .zip shader packs here.',
+    statusId: 'shaders-status',
+    importFn: (p) => ninoApi.shaders.importZip(p),
+    onDone: () => refreshShaders()
+  })
+}
+
 /* ---------- boot ---------- */
 async function boot() {
-  spawnPetals()
+  setupTitlebar()
   setupTabs()
   settings = await ninoApi.settings.get()
   await loadProfiles()
@@ -841,6 +879,7 @@ async function boot() {
   refreshPacks()
   refreshShaders()
   setupUpdate()
+  setupDragDrop()
 }
 
 boot()

@@ -1,13 +1,12 @@
 {
-  "name": "ninocraft-launcher",
-  "productName": "NinoCraft Launcher",
-  "version": "1.3.0",
-  "description": "Nino Nakano themed Minecraft launcher with Modrinth support",
-  "author": "NinoCraft <nino@ninocraft.dev>",
+  "name": "67-skid-launcher",
+  "productName": "67 Skid Launcher",
+  "version": "2.0.0",
+  "description": "67 Skid Minecraft launcher",
+  "author": "67 Skid",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "pack-ui": "node tools/gen-ui-pack.js",
     "dist": "node tools/gen-icon.js && node tools/gen-ui-pack.js && electron-builder --win",
     "publish": "node tools/gen-icon.js && node tools/gen-ui-pack.js && electron-builder --win --publish always"
   },
@@ -17,18 +16,18 @@
   },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.0.12"
   },
   "allowScripts": {
     "electron@33.4.11": true
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.6.2"
   },
   "build": {
-    "appId": "com.ninocraft.launcher",
-    "productName": "NinoCraft Launcher",
+    "appId": "com.67skid.launcher",
+    "productName": "67 Skid Launcher",
     "files": [
       "main.js",
       "preload.js",
@@ -44,6 +43,10 @@
       {
         "from": "tools",
         "to": "appdata/tools"
+      },
+      {
+        "from": "tools/bundled-mods",
+        "to": "bundled-mods"
       }
     ],
     "directories": {
@@ -66,7 +69,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "NinoCraft Launcher"
+      "shortcutName": "67 Skid Launcher"
     },
     "publish": [
       {

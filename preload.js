@@ -7,6 +7,11 @@ function on(channel, fn) {
 }
 
 contextBridge.exposeInMainWorld('nino', {
+  titlebar: {
+    minimize: () => ipcRenderer.send('titlebar:minimize'),
+    maximize: () => ipcRenderer.send('titlebar:maximize'),
+    close: () => ipcRenderer.send('titlebar:close')
+  },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
@@ -22,13 +27,15 @@ contextBridge.exposeInMainWorld('nino', {
   packs: {
     list: () => ipcRenderer.invoke('packs:list'),
     set: (name, enabled) => ipcRenderer.invoke('packs:set', name, enabled),
-    openFolder: () => ipcRenderer.invoke('packs:openFolder')
+    openFolder: () => ipcRenderer.invoke('packs:openFolder'),
+    importZip: (filePath) => ipcRenderer.invoke('packs:importZip', filePath)
   },
   shaders: {
     list: () => ipcRenderer.invoke('shaders:list'),
     set: (name) => ipcRenderer.invoke('shaders:set', name),
     openFolder: () => ipcRenderer.invoke('shaders:openFolder'),
-    installIris: () => ipcRenderer.invoke('shaders:installIris')
+    installIris: () => ipcRenderer.invoke('shaders:installIris'),
+    importZip: (filePath) => ipcRenderer.invoke('shaders:importZip', filePath)
   },
   paths: () => ipcRenderer.invoke('paths:get'),
   versions: () => ipcRenderer.invoke('versions:list'),
@@ -41,12 +48,14 @@ contextBridge.exposeInMainWorld('nino', {
   },
   mods: {
     list: () => ipcRenderer.invoke('mods:list'),
-    remove: (fileName) => ipcRenderer.invoke('mods:remove', fileName)
+    remove: (fileName) => ipcRenderer.invoke('mods:remove', fileName),
+    importJar: (filePath) => ipcRenderer.invoke('mods:importJar', filePath)
   },
   modpacks: {
     install: (args) => ipcRenderer.invoke('modpacks:install', args),
     list: () => ipcRenderer.invoke('modpacks:list'),
-    remove: (slug) => ipcRenderer.invoke('modpacks:remove', slug)
+    remove: (slug) => ipcRenderer.invoke('modpacks:remove', slug),
+    importZip: (filePath) => ipcRenderer.invoke('modpacks:importZip', filePath)
   },
   account: {
     get: () => ipcRenderer.invoke('account:get'),
