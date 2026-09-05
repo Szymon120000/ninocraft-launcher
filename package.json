@@ -1,7 +1,7 @@
 {
   "name": "67-skid-launcher",
   "productName": "67 Skid Launcher",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "67 Skid Minecraft launcher",
   "author": "67 Skid",
   "main": "main.js",
@@ -47,6 +47,10 @@
       {
         "from": "tools/bundled-mods",
         "to": "bundled-mods"
+      },
+      {
+        "from": "tools/meteor-profile",
+        "to": "meteor-profile"
       }
     ],
     "directories": {

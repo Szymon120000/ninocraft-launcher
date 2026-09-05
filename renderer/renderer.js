@@ -2,7 +2,6 @@ const ninoApi = window.nino
 const $ = (id) => document.getElementById(id)
 
 let settings = null
-let profileData = null
 let installedMods = []
 let installedPacks = []
 let gameRunning = false
@@ -82,8 +81,7 @@ async function loadVersions() {
   const data = await ninoApi.versions()
   if (!settings.mcVersion) {
     settings.mcVersion = data.latest.release
-    if (profileData) await updateProfileField({ mcVersion: settings.mcVersion })
-    else await saveSettings()
+    await saveSettings()
   }
   const select = $('mc-version')
   select.innerHTML = ''
@@ -107,86 +105,22 @@ async function loadVersions() {
 }
 
 /* ---------- play tab ---------- */
-function profileLabel(p) {
-  return p.name + ' \u2014 ' + (p.mcVersion || '?') + (p.loader && p.loader !== 'vanilla' ? ' ' + p.loader : '')
-}
-
-function refreshProfileSelect() {
-  const sel = $('profile-select')
-  sel.innerHTML = ''
-  for (const p of profileData.profiles) {
-    const opt = document.createElement('option')
-    opt.value = p.id
-    opt.textContent = profileLabel(p)
-    sel.appendChild(opt)
-  }
-  sel.value = profileData.active
-}
-
-function applyProfileToForm() {
-  const p = profileData.profiles.find((x) => x.id === profileData.active)
-  if (!p) return
-  settings.mcVersion = p.mcVersion
-  settings.loader = p.loader
-  settings.ram = p.ram
-  $('mc-version').value = p.mcVersion
-  $('mc-loader').value = p.loader
-  $('ram-slider').value = p.ram
-  $('ram-label').textContent = p.ram
-}
-
-async function loadProfiles() {
-  profileData = await ninoApi.profiles.list()
-  refreshProfileSelect()
-  applyProfileToForm()
-}
-
-async function updateProfileField(patch) {
-  settings = { ...settings, ...patch }
-  await saveSettings()
-  profileData = await ninoApi.profiles.update(patch)
-  refreshProfileSelect()
-  applyProfileToForm()
-}
-
-function setupProfiles() {
-  $('profile-select').addEventListener('change', async () => {
-    profileData = await ninoApi.profiles.setActive($('profile-select').value)
-    refreshProfileSelect()
-    applyProfileToForm()
-  })
-  $('btn-profile-new').addEventListener('click', () => {
-    $('profile-new-row').hidden = false
-    $('profile-new-name').value = 'Profile ' + (profileData.profiles.length + 1)
-    $('profile-new-name').focus()
-  })
-  $('btn-profile-create').addEventListener('click', async () => {
-    const name = $('profile-new-name').value.trim()
-    if (!name) return
-    profileData = await ninoApi.profiles.create(name)
-    $('profile-new-row').hidden = true
-    refreshProfileSelect()
-    applyProfileToForm()
-  })
-  $('btn-profile-cancel').addEventListener('click', () => {
-    $('profile-new-row').hidden = true
-  })
-  $('btn-profile-del').addEventListener('click', async () => {
-    if (profileData.profiles.length <= 1) return
-    if (!confirm('Delete profile "' + (profileData.profiles.find((x) => x.id === profileData.active) || {}).name + '"?')) return
-    profileData = await ninoApi.profiles.remove(profileData.active)
-    refreshProfileSelect()
-    applyProfileToForm()
-  })
-}
-
 function setupPlay() {
-  $('mc-version').addEventListener('change', () => updateProfileField({ mcVersion: $('mc-version').value }))
-  $('mc-loader').addEventListener('change', () => updateProfileField({ loader: $('mc-loader').value }))
+  $('mc-version').addEventListener('change', async () => {
+    settings.mcVersion = $('mc-version').value
+    await saveSettings()
+  })
+  $('mc-loader').addEventListener('change', async () => {
+    settings.loader = $('mc-loader').value
+    await saveSettings()
+  })
   $('ram-slider').addEventListener('input', () => {
     $('ram-label').textContent = $('ram-slider').value
   })
-  $('ram-slider').addEventListener('change', () => updateProfileField({ ram: parseInt($('ram-slider').value, 10) }))
+  $('ram-slider').addEventListener('change', async () => {
+    settings.ram = parseInt($('ram-slider').value, 10)
+    await saveSettings()
+  })
 
   $('btn-play').addEventListener('click', onPlay)
   $('btn-stop').addEventListener('click', async () => {
@@ -860,10 +794,8 @@ async function boot() {
   setupTitlebar()
   setupTabs()
   settings = await ninoApi.settings.get()
-  await loadProfiles()
   setupSettings()
   setupPlay()
-  setupProfiles()
   setupAccount()
   setupPacks()
   setupSearch('mod-search', 'mod-search-btn', 'mod-results', 'mods-status', 'mod')
